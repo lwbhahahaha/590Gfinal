@@ -9,6 +9,7 @@ public class ball0Script : MonoBehaviour
     public Vector3 wtemp;
     public Vector3 spin;
     public int num;
+    public bool isfreeball = false;
     public Vector3 v;
     private static float time_step_h;
     private Vector3 hit;
@@ -34,11 +35,13 @@ public class ball0Script : MonoBehaviour
     private float g;            //sacle^1  
     public float height;
     private float dropHeight;
+    private GameObject[] walls;
     //
     // Start is called before the first frame update
     void Start()
     {
         CollisionHandeler = new CollisionHandeler[120];
+        walls = new GameObject[6];
         isBusy = false;
         ct = 0;
         inbag = false;
@@ -67,7 +70,7 @@ public class ball0Script : MonoBehaviour
         wtemp = new Vector3(0f, 0f, 0f);
         //w = new Vector3(0f, 0f, 0f);
         //Debug.Log("2: "+ scale);
-        iniCollisonHandeler();
+        iniCollisonHandeler(); iniWalls();
 
     }
 
@@ -95,6 +98,25 @@ public class ball0Script : MonoBehaviour
         }
     }
 
+    void iniWalls()
+    {
+        GameObject[] go = FindObjectsOfType<GameObject>();
+
+        for (int i = 0; i < go.Length; i++)
+        {
+            if (go[i].name.Contains("wall"))
+            {
+                string currName = go[i].name;
+                //Debug.Log(currName);
+
+                int pos = currName.IndexOf("(");
+                currName = currName.Substring(pos + 1, currName.Length - 2 - pos);
+                //Debug.Log(currName);
+                walls[int.Parse(currName) - 1] = go[i];
+            }
+        }
+    }
+
     void hitWall()
     {
         Vector3 p0 = transform.position;
@@ -103,6 +125,43 @@ public class ball0Script : MonoBehaviour
         Vector3 p2 = p0;
         RaycastHit Ray;
         float pos = -ballR;
+        Physics.Raycast(p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos, v.normalized, out Ray, 100 * scale);
+
+
+        bool isInside = false;
+        Vector3 currPos = p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos;
+        for (int i=0;i<6;i++)
+        {
+            if (walls[i].GetComponent<Collider>().bounds.Contains(currPos))
+            {
+                isInside = true;
+            }
+        }
+        if (isInside)
+        {
+            p1 = p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos * 0.5f;
+        }
+        else
+        {
+            if (Physics.Raycast(p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos, v.normalized, out Ray, 100 * scale))
+            {
+                if (Ray.collider.name.Contains("wall") || Ray.collider.name.Contains("corner"))
+                {
+                    p1 = Ray.point;
+                }
+            }
+        }
+  
+
+
+
+
+
+
+
+
+
+        /*
         if (Physics.Raycast(p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos, v.normalized, out Ray, 100 * scale))
         {
             if (Ray.collider.name.Contains("wall"))
@@ -138,8 +197,40 @@ public class ball0Script : MonoBehaviour
                     }
                 }
             }
-        }
+        }*/
+        Debug.DrawLine(p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos, p1, Color.blue, 150f);
+
         pos = ballR;
+
+        isInside = false;
+        currPos = p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos;
+        for (int i = 0; i < 6; i++)
+        {
+            if (walls[i].GetComponent<Collider>().bounds.Contains(currPos))
+            {
+                isInside = true;
+            }
+        }
+        if (isInside)
+        {
+            p2 = p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos * 0.5f;
+        }
+        else
+        {
+            if (Physics.Raycast(p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos, v.normalized, out Ray, 100 * scale))
+            {
+                if (Ray.collider.name.Contains("wall") || Ray.collider.name.Contains("corner"))
+                {
+                    p2 = Ray.point;
+                }
+            }
+        }
+
+        Debug.DrawLine(p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos, p2, Color.blue, 150f);
+
+        //Ray.point = p0;
+
+        /*
         if (Physics.Raycast(p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos, v.normalized, out Ray, 100 * scale))
         {
             if (Ray.collider.name.Contains("wall"))
@@ -175,7 +266,7 @@ public class ball0Script : MonoBehaviour
                     }
                 }
             }
-        }
+        }*/
         //////// method 2:
         float accuracy = 0.1f;
         float numberOfRays = 15f;
@@ -502,13 +593,21 @@ public class ball0Script : MonoBehaviour
 
     void Update()
     {
-        //Debug.Log(IsStopped);
-        if (inbag && transform.position.y <= dropHeight)
+        if (!isfreeball)
         {
-            ballsScript.newBallsInBag.Add(num);
-            gameObject.SetActive(false);
-            //IsStopped = true;
-            //call game logic
+            if (inbag && transform.position.y <= dropHeight)
+            {
+                isfreeball = true;
+                v *= 0;
+                wtemp *= 0;
+                spin *= 0;
+                ballsScript.newBallsInBag.Add(num);
+                gameObject.SetActive(false);
+                inbag = false;
+                gEnabled = false;
+                //IsStopped = true;
+                //call game logic
+            }
         }
 
         /*
@@ -541,71 +640,27 @@ public class ball0Script : MonoBehaviour
 
     void FixedUpdate()
     {
-        //height = billiard.transform.TransformPoint(new Vector3(0, 0.8117664f, 0) * scale).y;
-        //Debug.Log(height);
-        if (transform.position.y > height || gEnabled)
+        if (!isfreeball)
         {
-            transform.position -= new Vector3(0, g / 10f * time_step_h, 0);
-        }
-        if (transform.position.y < height && !gEnabled)
-        {
-            transform.position = new Vector3(transform.position.x, height, transform.position.z);
-        }
+            //height = billiard.transform.TransformPoint(new Vector3(0, 0.8117664f, 0) * scale).y;
+            //Debug.Log(height);
+            if (transform.position.y > height || gEnabled)
+            {
+                transform.position -= new Vector3(0, g / 10f * time_step_h, 0);
+            }
+            if (transform.position.y < height && !gEnabled)
+            {
+                transform.position = new Vector3(transform.position.x, height, transform.position.z);
+            }
 
-        transform.RotateAround(transform.position, Vector3.up, spin.y * Mathf.Rad2Deg * time_step_h);//spin
-        transform.position += v * time_step_h;
-        transform.RotateAround(transform.position, Quaternion.Euler(0, 90, 0) * v, (v / ballR + wtemp).magnitude * Mathf.Rad2Deg * time_step_h);
-
-        v += (-v.normalized) * rollingResistance * g * time_step_h;
-        v += wtemp.normalized * slidingFriction * g * time_step_h;
-        wtemp += -wtemp.normalized * slidingFriction * g * time_step_h / ballR;
-        spin -= spin.normalized * spinDecelerationRate * time_step_h;
-        //
-
-
-
-        /*
-        if (Mathf.Abs(wtemp.magnitude * (ballR) / v.magnitude) - 1f <= 0.1f && Vector3.Angle(wtemp, v) < 0.5f)
-        {
-            transform.RotateAround(transform.position, Vector3.up, spin.y * time_step_h);
-            v += (-v.normalized) * rollingResistance * g * time_step_h;
+            transform.RotateAround(transform.position, Vector3.up, spin.y * Mathf.Rad2Deg * time_step_h);//spin
             transform.position += v * time_step_h;
-            transform.RotateAround(transform.position, Quaternion.Euler(0, 90, 0) * v, wtemp.magnitude * Mathf.Rad2Deg * time_step_h);
-            //
-            wtemp = v / (ballR);
-        }
-        else
-        {
-            transform.RotateAround(transform.position, Vector3.up, spin.y * time_step_h);
+            transform.RotateAround(transform.position, Quaternion.Euler(0, 90, 0) * v, (v / ballR + wtemp).magnitude * Mathf.Rad2Deg * time_step_h);
+
             v += (-v.normalized) * rollingResistance * g * time_step_h;
-            transform.position += v * time_step_h;
-            transform.RotateAround(transform.position, Quaternion.Euler(0, 90, 0) * v, wtemp.magnitude * Mathf.Rad2Deg * time_step_h);
-            //
-            v += (wtemp * ballR - v).normalized * slidingFriction * g * time_step_h;
-            wtemp += (v - wtemp * ballR).normalized * slidingFriction * g * time_step_h / ballR;
-        }*/
-        /*
-        if (v.magnitude < 0.005f)
-            v *= 0;
-        if (wtemp.magnitude < 0.005f)
-            wtemp *= 0;
-        if (Mathf.Abs(spin.y) < 0.005f)
-            spin.y = 0;
-        else*/
-        //Debug.Log(w);
-        //transform.localEulerAngles += w * time_step_h;
-        //Debug.Log(transform.eulerAngles);
-        //w -= new Vector3(angularDrag, 0, angularDrag) * time_step_h;
-        //w -= w.normalized * angularDrag * time_step_h;
-        /*
-        if (w!=v)
-        {
-            //sliding
-
+            v += wtemp.normalized * slidingFriction * g * time_step_h;
+            wtemp += -wtemp.normalized * slidingFriction * g * time_step_h / ballR;
+            spin -= spin.normalized * spinDecelerationRate * time_step_h;
         }
-        {
-
-        }
-        */
     }
 }

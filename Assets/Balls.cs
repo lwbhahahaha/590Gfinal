@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Balls : MonoBehaviour
 {
+    public GameObject[] balls;
     public GameObject billiard;
     public GameObject white;
     public GameObject ball1;
@@ -27,6 +28,8 @@ public class Balls : MonoBehaviour
     public GameObject cueHead;
     public GameObject redDot;
     public GameObject helperBall;
+    public GameObject powerBar;
+    public GameObject txt;
     public float distance;// ball d=2r
     public float fxtime = 0.01f;
     public float scale;
@@ -51,7 +54,7 @@ public class Balls : MonoBehaviour
     public float power;         //scale^2       slow:0.45m/s                                        done
     public float mass;         //scale^1                                                            done
     public float g;            //sacle^1                                                            done
-
+    public AI oppo;
     /*for power:
     soft touch = < 0.45 m/s                 I <= 0.07654365 kg·m /s
     slow = 0.45-0.89 m/s                    I = 0.07654365 kg·m /s - 0.15138633 kg·m /s
@@ -68,12 +71,17 @@ public class Balls : MonoBehaviour
     private float eyeheight;
     private float cueDistance;
     private float cueheight;
-    private GameObject[] balls;
     private bool[] picked;
     private float W;
     private float H;
     private bool helperReset = true;
     private float cueMoveSpeed = 30f;
+    private bool runOnlyOnce = true;
+    private bool runOnlyOnce2 = true;
+    private float xMin;
+    private float xMax;
+    private float zMin;
+    private float zMax;
 
     public List<int> prevBallsInBag;
     public List<int> newBallsInBag;
@@ -82,7 +90,7 @@ public class Balls : MonoBehaviour
     private int myColor;//0: not clear yet, 1: solid, 2:strip
     private int oppoColor;//0: not clear yet,1: solid, 2:strip
 
-    private int status;//0: My turn, setting things up; 1: I'm ready to shoot;  
+    public int status;//0: My turn, setting things up; 1: I'm ready to shoot;  
                        //2: oppo turn, setting things up 3: oppo is ready to shoot
                        //4:I shoot and wait until ball stops
                        //5:oppo shoot and wait until ball stops
@@ -92,6 +100,12 @@ public class Balls : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        powerBar.GetComponent<Healthbar>().SetHealth(50f);
+        float a = 36.4489496258712f;
+        float b = -2.98046118445402f;
+        float c = 234.532924037123f;
+        float d = 0.0399968601588961f;
+        power = (a - d) / (1f + Mathf.Pow((50f / c), b)) + d;
         //Time.timeScale = 1f;
         scale = cue.transform.localScale.x * 100f;
         mass *= scale;
@@ -113,11 +127,16 @@ public class Balls : MonoBehaviour
         W = 0f;
         H = 0f;
         iniBalls();
-        //int[] startPos = randomStart();
-        //putBalls(startPos);
+        int[] startPos = randomStart();
+        putBalls(startPos);
         //Debug.DrawLine(white.transform.position, white.transform.position+new Vector3(distance,0,0), Color.white, 15f);//normal
         //cueLength = Vector3.Distance(cueHead.transform.position, cueTail.transform.position);
         //eyes = camera.GetComponent<Camera>();
+        oppo.Start();
+        xMin = billiard.transform.TransformPoint(new Vector3(-1.24f, 0f, 0f) * scale).x;
+        xMax = billiard.transform.TransformPoint(new Vector3(1.24f, 0f, 0f) * scale).x;
+        zMin = billiard.transform.TransformPoint(new Vector3(0f, 0f, -0.6f) * scale).z;
+        zMax = billiard.transform.TransformPoint(new Vector3(0f, 0f, 0.6f) * scale).z;
     }
 
     void putBalls(int[] pos)
@@ -554,19 +573,19 @@ public class Balls : MonoBehaviour
         return true;
     }
 
-    bool whiteHittedRightColor()
+    bool whiteHittedRightColor(int s)
     {
-        if (status == 5)
+        if (s == 5)
         {
             return ballNumToColor(whiteTouched[0]) == oppoColor;
         }
         return ballNumToColor(whiteTouched[0]) == myColor;
     }
 
-    bool isTimeForBlackBall()
+    bool isTimeForBlackBall(int s)
     {
         int ct = 0;
-        if (status == 5)
+        if (s == 5)
         {
             for (int i = 0; i < prevBallsInBag.Count; i++)
             {
@@ -584,29 +603,31 @@ public class Balls : MonoBehaviour
         //刚刚击球的人应该打黑八？
     }
 
-    void freeBall()
+    bool collideWtihAnotherBallOnPos(Vector3 pos)
+    {
+        for (int i = 1; i < 16; i++)
+        {
+            if ((balls[i].transform.position - pos).magnitude <= 2f * ballR)
+                return true;
+        }
+        return false;
+    }
+
+    void freeBall(int s)
     {
         //Debug.Log(Input.mousePosition);
-        eyes.transform.position = billiard.transform.TransformPoint(new Vector3(0, 221.5f, 0));
+        eyes.transform.position = billiard.transform.TransformPoint(new Vector3(0, 230f, 0));
         eyes.transform.LookAt(billiard.transform);
         //刚刚击球的人自由球
-        if (status == 6)
+        if (s == 6)
         {
-            Vector3 screenPosition = Camera.main.WorldToScreenPoint(white.transform.position);
-            Vector3  mousePositionOnScreen = Input.mousePosition;
-            mousePositionOnScreen.z = screenPosition.z;
-            Vector3  mousePositionInWorld = Camera.main.ScreenToWorldPoint(mousePositionOnScreen);
-            white.transform.position = mousePositionInWorld;
-            //鼠标点击 判断是否合法：合法就摆放
-
-            status = 0;
         }
         else
         {
             //then AI
-
-
-            status = 2;
+            oppo.Start();
+            oppo.AIThinking(true);
+            status = -1;
         }
     }
 
@@ -617,19 +638,27 @@ public class Balls : MonoBehaviour
         return 2;
     }
 
-    void win()
+    void win(int s)
     {
+        if (s == 5)
+            txt.GetComponent<UnityEngine.UI.Text>().text = "You lose!";
+        else
+            txt.GetComponent<UnityEngine.UI.Text>().text = "You win!";
         //刚刚击球的人胜利
     }
 
-    void lose()
+    void lose(int s)
     {
         //刚刚击球的人失败
+        if (s == 4)
+            txt.GetComponent<UnityEngine.UI.Text>().text = "You lose!";
+        else
+            txt.GetComponent<UnityEngine.UI.Text>().text = "You win!";
     }
 
-    bool hasValidColor()
+    bool hasValidColor(int s)
     {
-        if (status == 5)
+        if (s == 5)
         {
             return ballNumToColor(newBallsInBag[0]) == oppoColor;
         }
@@ -637,24 +666,24 @@ public class Balls : MonoBehaviour
         //袋里有刚刚击球的人的花色？
     }
 
-    void changePlayer()
+    void changePlayer(int s)
     {
-        status = status * -2 + 10;
+        status = s * -2 + 10;
     }
-    void keepGoing()
+    void keepGoing(int s)
     {
-        status = status * 2 - 8;
+        status = s * 2 - 8;
     }
 
-    void gameLogic()
+    void gameLogic(int s)
     {
         //#1
-        Debug.Log("#1");
+        Debug.Log("game logic:\t#1");
         if (newBallsInBag.Contains(0))
         {
             //#3
-            Debug.Log("#3");
-            if (status == 5)
+            Debug.Log("game logic:\t#3");
+            if (s == 5)
                 status = 6;
             else
                 status = 7;
@@ -662,111 +691,117 @@ public class Balls : MonoBehaviour
         else
         {
             //#2
-            Debug.Log("#2");
+            Debug.Log("game logic:\t#2");
             if (whiteTouched.Count > 0)
             {
                 //#4
-                Debug.Log("#4");
+                Debug.Log("game logic:\t#4");
                 if (myColor == 0)
                 {
                     //#7
-                    Debug.Log("#7");
+                    Debug.Log("game logic:\t#7");
                     if (newBallsInBag.Count > 0)
                     {
                         //#8
-                        Debug.Log("#8");
+                        Debug.Log("game logic:\t#8");
                         if (newBallsInBag.Contains(8))
                         {
                             //#10
-                            Debug.Log("#10");
-                            lose();
+                            Debug.Log("game logic:\t#10");
+                            lose(s);
                         }
                         else
                         {
                             //#9
-                            Debug.Log("#9");
-                            if (status == 5)
+                            Debug.Log("game logic:\t#9");
+                            if (s == 5)
                             {
                                 oppoColor = ballNumToColor(newBallsInBag[0]);
+                                myColor = 3 - oppoColor;
+                                oppo.AIColor = oppoColor;
+                                Debug.Log("确定AI的花色是: " + ((oppoColor == 1) ? "solid" : "strip"));
                             }
                             else
                             {
                                 myColor = ballNumToColor(newBallsInBag[0]);
+                                oppoColor = 3 - myColor;
+                                oppo.AIColor = oppoColor;
                                 Debug.Log("确定我的花色是: "+ ((myColor==1)?"solid":"strip"));
                             }
                             //#11
-                            Debug.Log("#11");
-                            keepGoing();
+                            Debug.Log("game logic:\t#11");
+                            keepGoing(s);
                         }
                     }
                     else
                     {
                         //#12
-                        Debug.Log("#12");
+                        Debug.Log("game logic:\t#12");
                         Debug.Log("开局无进球");
-                        changePlayer();
+                        changePlayer(s);
                     }
                 }
                 else
                 {
                     //#6
-                    Debug.Log("#6");
-                    if (whiteHittedRightColor())
+                    Debug.Log("game logic:\t#6");
+                    if (whiteHittedRightColor(s))
                     {
                         //#13
-                        Debug.Log("#13");
+                        Debug.Log("game logic:\t#13");
                         if (newBallsInBag.Count > 0)
                         {
                             //#16
-                            Debug.Log("#16");
+                            Debug.Log("game logic:\t#16");
                             if (newBallsInBag.Contains(8))
                             {
                                 //#17
-                                Debug.Log("#17");
-                                if (isTimeForBlackBall())
+                                Debug.Log("game logic:\t#17");
+                                if (isTimeForBlackBall(s))
                                 {
                                     //#21
-                                    Debug.Log("#21");
-                                    win();
+                                    Debug.Log("game logic:\t#21");
+                                    win(s);
                                 }
                                 else
                                 {
                                     //#22
-                                    Debug.Log("#22");
-                                    lose();
+                                    Debug.Log("game logic:\t#22");
+                                    lose(s);
                                 }
                             }
                             else
                             {
                                 //#18
-                                Debug.Log("#18");
-                                if (hasValidColor())
+                                Debug.Log("game logic:\t#18");
+                                if (hasValidColor(s))
                                 {
                                     //#19
-                                    Debug.Log("#19");
-                                    keepGoing();
+                                    Debug.Log("game logic:\t#19");
+                                    keepGoing(s);
                                 }
                                 else
                                 {
                                     //#20
-                                    Debug.Log("#20");
-                                    changePlayer();
+                                    Debug.Log("game logic:\t#20");
+                                    changePlayer(s);
                                 }
                             }
                         }
                         else
                         {
                             //#15
-                            Debug.Log("#15");
-                            changePlayer();
+                            Debug.Log("game logic:\t#15");
+                            Debug.Log("无进球");
+                            changePlayer(s);
                         }
                     }
                     else
                     {
                         //#14
-                        Debug.Log("#14");
+                        Debug.Log("game logic:\t#14");
                         Debug.Log("白球先打到："+ whiteTouched[0]);
-                        if (status == 5)
+                        if (s == 5)
                             status = 6;
                         else
                             status = 7;
@@ -776,8 +811,9 @@ public class Balls : MonoBehaviour
             else
             {
                 //#5
-                Debug.Log("#5");
-                if (status == 5)
+                Debug.Log("game logic:\t#5");
+                Debug.Log("白球没有碰到任何球");
+                if (s == 5)
                     status = 6;
                 else
                     status = 7;
@@ -788,21 +824,66 @@ public class Balls : MonoBehaviour
         whiteTouched.Clear();
     }
 
+    IEnumerator wait(int s)
+    {
+        yield return new WaitForSeconds(1.5f);
+        gameLogic(s);
+    }
+
     // Update is called once per frame
     void Update()
     {
-        
-        //Debug.Log(status);
+        //Debug.Log(newBallsInBag.Count);
         if (status == 0)
         {
+            //UI
+            if (myColor==0)
+            {
+                txt.GetComponent<UnityEngine.UI.Text>().text = "You can aim at any ball";
+            }
+            else
+            {
+                txt.GetComponent<UnityEngine.UI.Text>().text = "You can only aim at "+((myColor==1)?"solid":"strip")+ " ball";
+            }
+            //
+            powerBar.GetComponent<Healthbar>().SetHealth(50f);
+            float a = 36.4489496258712f;
+            float b = -2.98046118445402f;
+            float c = 234.532924037123f;
+            float d = 0.0399968601588961f;
+            power = (a - d) / (1f + Mathf.Pow((50f / c), b)) + d;
+            W = 0;
+            H = 0;
             LocateWhiteAndPlaceCue();
+            helperLineAndBall();
             status = 1;
         }
         if (status == 1)
         {
+            runOnlyOnce = true;
             if (helperReset)
             {
                 helperReset = false;
+                helperLineAndBall();
+            }
+            if (Input.GetKey("w"))
+            {
+                powerBar.GetComponent<Healthbar>().GainHealth(1);
+                float a = 36.4489496258712f;
+                float b = -2.98046118445402f;
+                float c = 234.532924037123f;
+                float d = 0.0399968601588961f;
+                power = (a - d) / (1f + Mathf.Pow(((float)powerBar.GetComponent<Healthbar>().healthPercentage / c), b)) + d;
+                helperLineAndBall();
+            }
+            if (Input.GetKey("s"))
+            {
+                powerBar.GetComponent<Healthbar>().TakeDamage(1);
+                float a = 36.4489496258712f;
+                float b = -2.98046118445402f;
+                float c = 234.532924037123f;
+                float d = 0.0399968601588961f;
+                power = (a - d) / (1f + Mathf.Pow(((float)powerBar.GetComponent<Healthbar>().healthPercentage / c), b)) + d;
                 helperLineAndBall();
             }
             if (Input.GetKey("q"))
@@ -855,28 +936,62 @@ public class Balls : MonoBehaviour
                 status = 4;
                 //Debug.Log(status);
                 HitBall();
+                txt.GetComponent<UnityEngine.UI.Text>().text = "";
                 helperReset = false;
-                eyes.transform.position = billiard.transform.TransformPoint(new Vector3(0, 221.5f, 0));
+                eyes.transform.position = billiard.transform.TransformPoint(new Vector3(0, 230f, 0));
                 eyes.transform.LookAt(billiard.transform);
             }
         }
-        if (status == 4)
+        if (status == 4 || status == 5)
         {
-
             if (noBallIsMoving())
             {
-                gameLogic();
-                //查看落袋球
-                //如果没有判定花色：判定花色
-                //如果撞错颜色，换人，自由球
-                //如果没有进球，换人
-                //status = 0;
+                StartCoroutine(wait(status));
+                status = -1;
             }
 
         }
-        else if (status==6 || status==7)
+        else if (status ==6)
         {
-            freeBall();
+            Vector3 screenPosition = Camera.main.WorldToScreenPoint(white.transform.position);
+            Vector3 mousePositionOnScreen = Input.mousePosition;
+            mousePositionOnScreen.z = screenPosition.z;
+            Vector3 mousePositionInWorld = Camera.main.ScreenToWorldPoint(mousePositionOnScreen);
+            mousePositionInWorld.z = Mathf.Min(zMax, mousePositionInWorld.z);
+            mousePositionInWorld.z = Mathf.Max(zMin, mousePositionInWorld.z);
+            mousePositionInWorld.x = Mathf.Min(xMax, mousePositionInWorld.x);
+            mousePositionInWorld.x = Mathf.Max(xMin, mousePositionInWorld.x);
+            //鼠标点击 判断是否合法：合法就摆放
+            if (!collideWtihAnotherBallOnPos(mousePositionInWorld))
+            {
+                white.transform.position = mousePositionInWorld;
+            }
+            //status = 0;
+            if (Input.GetMouseButtonDown(0))
+            {
+                if (!collideWtihAnotherBallOnPos(mousePositionInWorld))
+                {
+                    status = 0;
+                }
+                else 
+                { 
+                    //UI
+                }
+            }
+        }
+        else if (status==7)
+        {
+            status = -1;
+            freeBall(7);
+        }
+        else if (status == 2)
+        {
+            status = -1;
+            prevBallsInBag.AddRange(newBallsInBag);
+            newBallsInBag.Clear();
+            whiteTouched.Clear();
+            oppo.Start();
+            oppo.AIThinking(false);
         }
     }
 }
