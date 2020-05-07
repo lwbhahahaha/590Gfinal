@@ -82,6 +82,8 @@ public class Balls : MonoBehaviour
     private float xMax;
     private float zMin;
     private float zMax;
+    private float yHeight;
+    private float cameraHeight;
 
     public List<int> prevBallsInBag;
     public List<int> newBallsInBag;
@@ -127,6 +129,7 @@ public class Balls : MonoBehaviour
         W = 0f;
         H = 0f;
         iniBalls();
+        cameraHeight = 3f * scale;
         int[] startPos = randomStart();
         putBalls(startPos);
         //Debug.DrawLine(white.transform.position, white.transform.position+new Vector3(distance,0,0), Color.white, 15f);//normal
@@ -137,6 +140,7 @@ public class Balls : MonoBehaviour
         xMax = billiard.transform.TransformPoint(new Vector3(1.24f, 0f, 0f) * scale).x;
         zMin = billiard.transform.TransformPoint(new Vector3(0f, 0f, -0.6f) * scale).z;
         zMax = billiard.transform.TransformPoint(new Vector3(0f, 0f, 0.6f) * scale).z;
+        yHeight = billiard.transform.TransformPoint(new Vector3(0, 0.8117664f, 0) * scale).y;
     }
 
     void putBalls(int[] pos)
@@ -575,6 +579,10 @@ public class Balls : MonoBehaviour
 
     bool whiteHittedRightColor(int s)
     {
+        if (isTimeForBlackBall(s))
+        {
+            return s == 8;
+        }
         if (s == 5)
         {
             return ballNumToColor(whiteTouched[0]) == oppoColor;
@@ -616,7 +624,7 @@ public class Balls : MonoBehaviour
     void freeBall(int s)
     {
         //Debug.Log(Input.mousePosition);
-        eyes.transform.position = billiard.transform.TransformPoint(new Vector3(0, 230f, 0));
+        eyes.transform.position = billiard.transform.TransformPoint(new Vector3(0, cameraHeight, 0));
         eyes.transform.LookAt(billiard.transform);
         //刚刚击球的人自由球
         if (s == 6)
@@ -633,6 +641,8 @@ public class Balls : MonoBehaviour
 
     int ballNumToColor(int ball)
     {
+        if (ball == 8)
+            return -1;
         if (ball <= 7)
             return 1;
         return 2;
@@ -854,6 +864,8 @@ public class Balls : MonoBehaviour
             power = (a - d) / (1f + Mathf.Pow((50f / c), b)) + d;
             W = 0;
             H = 0;
+            RectTransform m_RectTransform = redDot.GetComponent<RectTransform>();
+            m_RectTransform.anchoredPosition = new Vector3(W, H, 0f);
             LocateWhiteAndPlaceCue();
             helperLineAndBall();
             status = 1;
@@ -938,7 +950,7 @@ public class Balls : MonoBehaviour
                 HitBall();
                 txt.GetComponent<UnityEngine.UI.Text>().text = "";
                 helperReset = false;
-                eyes.transform.position = billiard.transform.TransformPoint(new Vector3(0, 230f, 0));
+                eyes.transform.position = billiard.transform.TransformPoint(new Vector3(0, cameraHeight, 0));
                 eyes.transform.LookAt(billiard.transform);
             }
         }
@@ -953,6 +965,12 @@ public class Balls : MonoBehaviour
         }
         else if (status ==6)
         {
+            balls[0].GetComponent<ball0Script>().isfreeball = false;
+            balls[0].GetComponent<ball0Script>().inbag = false;
+            balls[0].GetComponent<ball0Script>().gEnabled = false;
+            balls[0].SetActive(true);
+            eyes.transform.position = billiard.transform.TransformPoint(new Vector3(0, cameraHeight, 0));
+            eyes.transform.LookAt(billiard.transform);
             Vector3 screenPosition = Camera.main.WorldToScreenPoint(white.transform.position);
             Vector3 mousePositionOnScreen = Input.mousePosition;
             mousePositionOnScreen.z = screenPosition.z;
@@ -961,6 +979,7 @@ public class Balls : MonoBehaviour
             mousePositionInWorld.z = Mathf.Max(zMin, mousePositionInWorld.z);
             mousePositionInWorld.x = Mathf.Min(xMax, mousePositionInWorld.x);
             mousePositionInWorld.x = Mathf.Max(xMin, mousePositionInWorld.x);
+            mousePositionInWorld.y = yHeight;
             //鼠标点击 判断是否合法：合法就摆放
             if (!collideWtihAnotherBallOnPos(mousePositionInWorld))
             {
@@ -975,7 +994,7 @@ public class Balls : MonoBehaviour
                 }
                 else 
                 { 
-                    //UI
+                    //UI txt
                 }
             }
         }

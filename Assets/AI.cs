@@ -28,7 +28,6 @@ public class AI : MonoBehaviour
     private float y;
     private float mass;
     private Vector3 hitPt;
-    private bool timeToShootBlack;
     private GameObject billiard;
     private GameObject[] balls;
     public GameObject powerBar;
@@ -39,7 +38,6 @@ public class AI : MonoBehaviour
         ttarget = null;
         hitPt = new Vector3(0, 0, 0);
         possibleTargets.Clear();
-        timeToShootBlack = false;
         balls = ballsScript.balls;
         ballR = ballsScript.ballR;
         mass = ballsScript.mass;
@@ -66,6 +64,8 @@ public class AI : MonoBehaviour
     {
         if (AIColor == 0)
             return 0;
+        if (ball == 9)
+            return -1;
         if (ball <= 7)
             return 1;
         return 2;
@@ -73,15 +73,16 @@ public class AI : MonoBehaviour
 
     GameObject findABallStraightToBag(GameObject white = null)
     {
+        Debug.Log(AIColor);
         if (white == null)
         {
             //找自己球：自己球到洞口之间没有障碍
-            if (timeToShootBlack)
+            if (isTimeForBlackBall())
             {
                 for (int i = 0; i < 6; i++)
                 {
                     RaycastHit hit;
-                    if (!balls[8].GetComponent<Rigidbody>().SweepTest(bagPos[i] - balls[8].transform.position, out hit, (bagPos[i] - balls[8].transform.position).magnitude))
+                    if (!balls[8].GetComponent<Rigidbody>().SweepTest(bagPos[i] - balls[8].transform.position, out hit, (bagPos[i] - balls[8].transform.position).magnitude - 3f * ballR))
                     {
                         targetBag = i;
                         return balls[8];
@@ -103,16 +104,15 @@ public class AI : MonoBehaviour
                     for (int j = 0; j < 6; j++)
                     {
                         RaycastHit hit;
-                        float currLength = (bagPos[j] - currPos).magnitude;
-                        if (!currRb.SweepTest(bagPos[j] - currPos, out hit, currLength))
+                        float currLength = (bagPos[j] - currPos).magnitude - 3f * ballR;
+                        if (!currRb.SweepTest((bagPos[j] - currPos).normalized, out hit, currLength))
                         {
                             if (currLength < minLength)
                             {
                                 minLength = currLength;
                                 targetBag = j;
-                                minTarget = balls[i];
                             }
-                            possibleTargets.Add(balls[i]);
+                            minTarget = balls[i];
                         }
                     }
                 }
@@ -129,10 +129,10 @@ public class AI : MonoBehaviour
             //找自己球：自己球到白球之间没有障碍
             Vector3 whitePos = balls[0].transform.position;
             Rigidbody currRb = balls[0].GetComponent<Rigidbody>();
-            if (timeToShootBlack)
+            if (isTimeForBlackBall())
             {
                 RaycastHit hit;
-                if (!currRb.SweepTest(balls[8].transform.position - whitePos, out hit, (balls[8].transform.position - whitePos).magnitude))
+                if (!currRb.SweepTest(balls[8].transform.position - whitePos, out hit, (balls[8].transform.position - whitePos).magnitude - 3f * ballR))
                 {
                     return balls[8];
                 }
@@ -140,21 +140,23 @@ public class AI : MonoBehaviour
             }
             else
             {
+                possibleTargets.Clear();
                 float minLength = 10000f;
                 GameObject minTarget = balls[0];
                 for (int i = 1; i <= 15; i++)
                 {
-                    if (ballNumToColor(i) != AIColor || i == 8)
+                    if (ballNumToColor(i) != AIColor || i == 8 || balls[i].GetComponent<ball0Script>().inbag)
                         continue;
                     RaycastHit hit;
-                    float currLength = (balls[i].transform.position - whitePos).magnitude;
-                    if (!currRb.SweepTest(balls[i].transform.position - whitePos, out hit, currLength))
+                    float currLength = (balls[i].transform.position - whitePos).magnitude - 3f * ballR;
+                    if (!currRb.SweepTest((balls[i].transform.position - whitePos).normalized, out hit, currLength))
                     {
                         if (currLength < minLength)
                         {
                             minLength = currLength;
                             minTarget = balls[i];
                         }
+                        possibleTargets.Add(balls[i]);
                     }
                 }
                 if (minTarget == balls[0])
@@ -173,7 +175,7 @@ public class AI : MonoBehaviour
         if (!isOnTable(currPos))
             return false;
 
-        if (timeToShootBlack)
+        if (isTimeForBlackBall())
         {
             if ((balls[8].transform.position - currPos).magnitude <= 2f * ballR)
                 return true;
@@ -229,7 +231,7 @@ public class AI : MonoBehaviour
         }
         else
         {
-            float distance = Random.Range(6f * ballR, 20f * ballR);
+            float distance = Random.Range(3f * ballR, 20f * ballR);
 
             Vector3 newWhitePos = (target.transform.position - bagPos[targetBag]).normalized * distance + target.transform.position;
             balls[0].transform.position = newWhitePos;
@@ -237,7 +239,7 @@ public class AI : MonoBehaviour
             int ct = 0;
             while (!isOnTable(newWhitePos) && collideWtihAnotherBallOnPos(newWhitePos) && target != currTarget && ct <= 100)
             {
-                distance = Random.Range(6f * ballR, 20f * ballR);
+                distance = Random.Range(3f * ballR, 20f * ballR);
                 newWhitePos = (target.transform.position - bagPos[targetBag]).normalized * distance + target.transform.position;
                 balls[0].transform.position = newWhitePos;
                 currTarget = findABallStraightToBag(balls[0]);
@@ -248,9 +250,11 @@ public class AI : MonoBehaviour
         }
         //AIShoot();
     }
+
     IEnumerator waitForWhiteReplaced(GameObject target)
     {
         balls[0].GetComponent<ball0Script>().isfreeball = false;
+        balls[0].GetComponent<ball0Script>().inbag = false;
         balls[0].SetActive(true);
         yield return new WaitForSeconds(1f);
         AIShoot(target);
@@ -260,6 +264,7 @@ public class AI : MonoBehaviour
     {
         balls[0].SetActive(true);
         balls[0].GetComponent<ball0Script>().isfreeball = false;
+        balls[0].GetComponent<ball0Script>().inbag = false;
         yield return new WaitForSeconds(1f);
         Shoot(d, target);
     }
@@ -322,23 +327,25 @@ public class AI : MonoBehaviour
     Vector3 findAngleToshoot(GameObject target)
     {
         Vector3 whitePos = balls[0].transform.position;
+        Rigidbody whiteRb = balls[0].GetComponent<Rigidbody>();
         Rigidbody currRb = target.GetComponent<Rigidbody>();
         for (int i = 0; i < 6; i++)
         {
             RaycastHit hit;
-            if (currRb.SweepTest(bagPos[i] - whitePos, out hit, (bagPos[i] - whitePos).magnitude))
+            RaycastHit hitt;
+            if (!currRb.SweepTest((bagPos[i] - target.transform.position).normalized, out hit, (bagPos[i] - target.transform.position).magnitude))
             {
-                if (!hit.collider.name.Contains("ball"))
+                //Debug.DrawRay(target.transform.position, bagPos[i] - target.transform.position, Color.white, 150f);
+                Vector3 temp = (target.transform.position - bagPos[i]).normalized * 2f * ballR + target.transform.position - whitePos;
+                if (!whiteRb.SweepTest(temp.normalized, out hitt, temp.magnitude))
                 {
-                    hitPt = hit.point + hit.normal * ballR;
-                    return (hitPt - whitePos).normalized;
+                    Debug.DrawRay(target.transform.position, bagPos[i] - target.transform.position, Color.white, 150f);
+                    Debug.DrawRay(whitePos, temp, Color.white, 150f);
+                    targetBag = i;
+                    //Time.timeScale = 0f;
+                    return temp.normalized;
                 }
-            }
-            else
-            {
-
-                hitPt = hit.point + hit.normal * ballR;
-                return (hitPt - whitePos).normalized;
+                //return ((target.transform.position - bagPos[i]).normalized * 2f * ballR + target.transform.position - whitePos).normalized;
             }
         }
         //返回目标方向，否则返回(0,1,0)
@@ -357,7 +364,7 @@ public class AI : MonoBehaviour
         Vector3 spinV = Quaternion.Euler(0, -W * 45f / 80f, 0) * Quaternion.AngleAxis(H * 45f / 80f, Quaternion.Euler(0, 90, 0) * Direction) * (-Direction) * ballR;
 
         RectTransform m_RectTransform = redDot.GetComponent<RectTransform>();
-        m_RectTransform.anchoredPosition= new Vector3( W,H,0f);
+        m_RectTransform.anchoredPosition = new Vector3(W, H, 0f);
 
         float a = 102.73574623625f;
         float b = -1.91154301352143f;
@@ -366,9 +373,9 @@ public class AI : MonoBehaviour
         float h = (a - d) / (1f + Mathf.Pow((power / c), b)) + d;
         powerBar.GetComponent<Healthbar>().SetHealth((int)h);
 
-        balls[0].GetComponent<ball0Script>().hittedByCue(Direction * power * scale * scale, whitePos + spinV, scale);
+        balls[0].GetComponent<ball0Script>().hittedByCue(Direction * power * scale, whitePos + spinV, scale);
         ballsScript.status = 5;
-        Debug.Log("随即击球");
+        Debug.Log("随机击球");
     }
 
     void backShoot(Vector3 direction, GameObject tragetBall)
@@ -406,16 +413,17 @@ public class AI : MonoBehaviour
 
         balls[0].GetComponent<ball0Script>().hittedByCue(direction * power * scale, whitePos, scale);
         ballsScript.status = 5;
-        Debug.Log("低杆击球 目标："+ tragetBall.name);
+        Debug.Log("低杆击球 目标：" + tragetBall.name);
     }
 
     void Shoot(Vector3 direction)
     {
         //calculate min v
         Vector3 whitePos = balls[0].transform.position;
-        float power = NextGaussian(0.3f, 0.002f, 0.07f, 0.7f);
+        float power = NextGaussian(0.3f, 0.0002f, 0.07f, 0.7f);
+        Debug.Log("普通击球\t" + power);
         //Debug.DrawRay(whitePos, direction * power, Color.white, 15f);
-
+        balls[0].GetComponent<ball0Script>().hittedByCue(direction * power * scale/4f* scale, whitePos, scale);
 
         float a = 102.73574623625f;
         float b = -1.91154301352143f;
@@ -426,16 +434,20 @@ public class AI : MonoBehaviour
 
 
 
-        balls[0].GetComponent<ball0Script>().hittedByCue(direction * power * scale * scale, whitePos, scale);
+        
         ballsScript.status = 5;
-        Debug.Log("普通击球改变：" + ballsScript.status);
-        Debug.Log("普通击球");
+        //Debug.Log("普通击球改变：" + ballsScript.status);
     }
 
     void Shoot(Vector3 direction, GameObject tragetBall)
     {
         //calculate min v
         Vector3 whitePos = balls[0].transform.position;
+        if (targetBag == -1)
+        {
+            Shoot((tragetBall.transform.position - whitePos).normalized);
+            return;
+        }
         float a = ballsScript.rollDrag;
         float k = ballsScript.ballBallCoefficientOfRestitution;
         float l1 = (bagPos[targetBag] - tragetBall.transform.position).magnitude;
@@ -527,6 +539,7 @@ public class AI : MonoBehaviour
             else
             {
                 //#2
+                Debug.Log("目标球： " + tragetBall.name);
                 Debug.Log("AIShoot #2");
                 Vector3 shootDirection = findAngleToshoot(tragetBall);
                 if (shootDirection == Vector3.up)
@@ -535,16 +548,18 @@ public class AI : MonoBehaviour
                     Debug.Log("AIShoot #5");
                     if (possibleTargets.Count > 1)
                     {
-                        for (int i = 1; i < possibleTargets.Count; i++)
+                        for (int i = 0; i < possibleTargets.Count; i++)
                         {
                             shootDirection = findAngleToshoot(possibleTargets[i]);
                             if (shootDirection != Vector3.up)
                             {
                                 tragetBall = possibleTargets[i];
+                                Debug.Log("目标球更新为： " + tragetBall.name);
                                 break;
                             }
 
                         }
+
                         if (shootDirection != Vector3.up)
                         {
 
@@ -565,7 +580,7 @@ public class AI : MonoBehaviour
                         }
                         else
                         {
-                            RandomShoot();
+                            Shoot(tragetBall.transform.position - balls[0].transform.position);
                         }
                     }
                     else
@@ -598,7 +613,26 @@ public class AI : MonoBehaviour
         {
             Debug.Log("AIShoot with target");
             //Debug.Log(findAngleToshoot(tragetBall)); Debug.DrawRay(balls[0].transform.position, findAngleToshoot(tragetBall), Color.white, 15f);
-            Shoot(findAngleToshoot(tragetBall), tragetBall);
+            if (findAngleToshoot(tragetBall) == Vector3.up)
+            {
+                Shoot(tragetBall.transform.position - balls[0].transform.position);
+            }
+            else
+            {
+                Shoot(findAngleToshoot(tragetBall));
+            }
         }
+    }
+
+
+    bool isTimeForBlackBall()
+    {
+        int ct= 0;
+        for (int i = 1; i < 16; i++)
+        {
+            if (ballNumToColor(i) == AIColor && !balls[i].GetComponent<ball0Script>().inbag)
+                ct++;
+        }
+        return ct == 0;
     }
 }

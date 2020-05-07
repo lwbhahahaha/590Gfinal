@@ -4,6 +4,14 @@ using UnityEngine;
 
 public class ball0Script : MonoBehaviour
 {
+    public AudioSource wall1;
+    public AudioSource wall2;
+    public AudioSource bag;
+    public AudioSource ballball;
+    public AudioSource cue;
+
+
+
     private float ballR;
     //private Vector3 w;
     public Vector3 wtemp;
@@ -15,7 +23,7 @@ public class ball0Script : MonoBehaviour
     private Vector3 hit;
     private GameObject billiard;
     private float scale;
-    public bool inbag;
+    public bool inbag=false;
     public bool isBusy;
     private int ct;
     //
@@ -40,6 +48,12 @@ public class ball0Script : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        wall1=GameObject.Find("wal1S").GetComponent<AudioSource>();
+        wall2 = GameObject.Find("wal2S").GetComponent<AudioSource>();
+        bag = GameObject.Find("bgS").GetComponent<AudioSource>();
+        ballball = GameObject.Find("bbS").GetComponent<AudioSource>();
+        cue = GameObject.Find("qS").GetComponent<AudioSource>();
+
         CollisionHandeler = new CollisionHandeler[120];
         walls = new GameObject[6];
         isBusy = false;
@@ -72,6 +86,30 @@ public class ball0Script : MonoBehaviour
         //Debug.Log("2: "+ scale);
         iniCollisonHandeler(); iniWalls();
 
+    }
+
+    void playSound(int i, float vol)
+    {
+        vol /= scale;
+        switch (i)
+        {
+            case 1:
+                if (Random.Range(0, 2) == 0)
+                    //wall1.Play(0);
+                    wall1.PlayOneShot(wall1.clip, vol/2f);
+                else
+                    wall2.PlayOneShot(wall2.clip, vol/2f);
+                break;
+            case 2:
+                cue.PlayOneShot(cue.clip, Mathf.Min(vol,3f));
+                break;
+            case 3:
+                bag.PlayOneShot(bag.clip, vol/7f);
+                break;
+            case 4:
+                ballball.PlayOneShot(ballball.clip, Mathf.Min(vol, 3f));
+                break;
+        }
     }
 
     void iniCollisonHandeler()
@@ -119,7 +157,11 @@ public class ball0Script : MonoBehaviour
 
     void hitWall()
     {
+
+        playSound(1,v.magnitude);
+        v.y = 0;
         Vector3 p0 = transform.position;
+        Debug.DrawRay(p0, v.normalized * ballR, Color.gray, 150f);
         //Debug.DrawRay(p0, wtemp, Color.yellow, 150f);
         Vector3 p1 = p0;
         Vector3 p2 = p0;
@@ -139,7 +181,7 @@ public class ball0Script : MonoBehaviour
         }
         if (isInside)
         {
-            p1 = p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos * 0.5f;
+            p1 = p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos;
         }
         else
         {
@@ -198,7 +240,7 @@ public class ball0Script : MonoBehaviour
                 }
             }
         }*/
-        Debug.DrawLine(p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos, p1, Color.blue, 150f);
+        Debug.DrawLine(p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos, p1, Color.magenta, 150f);
 
         pos = ballR;
 
@@ -213,7 +255,7 @@ public class ball0Script : MonoBehaviour
         }
         if (isInside)
         {
-            p2 = p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos * 0.5f;
+            p2 = p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos;
         }
         else
         {
@@ -226,7 +268,7 @@ public class ball0Script : MonoBehaviour
             }
         }
 
-        Debug.DrawLine(p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos, p2, Color.blue, 150f);
+        Debug.DrawLine(p0 + Quaternion.Euler(0, 90f, 0) * v.normalized * pos, p2, Color.cyan, 150f);
 
         //Ray.point = p0;
 
@@ -279,10 +321,8 @@ public class ball0Script : MonoBehaviour
         float prevLength = 100f;
         Ray.point = p0 + Vector3.forward * ballR * 2f;
         float ct = 0;
-        while ((Ray.point - p0).magnitude > ballR * 1.05f && ct <= 10f)
+        while ((Ray.point - p0).magnitude > ballR * 1.5f && ct <= 10f)
         {
-
-
             while (Mathf.Abs(angleD) > accuracy)
             {
                 while (length <= prevLength)
@@ -319,6 +359,7 @@ public class ball0Script : MonoBehaviour
         //spin:
         wallSpin();
     }
+    
     public Vector3[] wallSpinSimulate(Vector3 p0, Vector3 vv, Vector3 spinn)
     {
         float a = 1.47763814840382f;
@@ -461,14 +502,30 @@ public class ball0Script : MonoBehaviour
         }
         else if (name.Contains("corner") || name.Contains("bag"))
         {
-            v.x *= 0.3f;
-            v.z *= 0.3f;
+            playSound(3, v.magnitude);
+            v = v.normalized * 60f;
+            wtemp *= 0;
             gEnabled = true;
             inbag = true;
+            ballsScript.newBallsInBag.Add(num);
+            StartCoroutine(waitToDestory());
         }
-        else
+        else 
         {
             Debug.Log(name);
+        }
+    }
+
+    IEnumerator waitToDestory()
+    {
+        if (!isfreeball)
+        {
+                yield return new WaitForSeconds(0.08f);
+                isfreeball = true;
+                v *= 0;
+                wtemp *= 0;
+                spin *= 0;
+                gEnabled = false;
         }
     }
 
@@ -530,6 +587,8 @@ public class ball0Script : MonoBehaviour
     {
         if (num > otherS.num)
         {
+
+            playSound(4,(v+ oppoV).magnitude);
             int idx = 0;
             for (int i=15;i>=16- otherS.num; i--)
             {
@@ -542,6 +601,7 @@ public class ball0Script : MonoBehaviour
     //for white ball only
     public void hittedByCue(Vector3 P, Vector3 hitPoint, float s)
     {
+        playSound(2,(P/mass).magnitude);
         scale = s;
         Vector3 direction = P.normalized;
         //get v0
@@ -593,22 +653,7 @@ public class ball0Script : MonoBehaviour
 
     void Update()
     {
-        if (!isfreeball)
-        {
-            if (inbag && transform.position.y <= dropHeight)
-            {
-                isfreeball = true;
-                v *= 0;
-                wtemp *= 0;
-                spin *= 0;
-                ballsScript.newBallsInBag.Add(num);
-                gameObject.SetActive(false);
-                inbag = false;
-                gEnabled = false;
-                //IsStopped = true;
-                //call game logic
-            }
-        }
+        
 
         /*
         if (v.magnitude < 0.005f && wtemp.magnitude < 0.005f)

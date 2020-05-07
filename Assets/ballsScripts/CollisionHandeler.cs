@@ -12,7 +12,6 @@ public class CollisionHandeler : MonoBehaviour
     // Start is called before the first frame update
     public void getHitted(ball0Script smallS, Vector3 smallV, GameObject smallGO, ball0Script bigS, Vector3 bigV, GameObject bigGO)
     {
-        //我是小
         //Debug.Log(num);
         Vector3 direction = (bigGO.transform.position - smallGO.transform.position).normalized;
         Vector3 myRelativeV = Vector3.Project(smallV, direction);
