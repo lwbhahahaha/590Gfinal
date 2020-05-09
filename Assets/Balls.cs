@@ -105,6 +105,7 @@ public class Balls : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        Time.timeScale = 0f;
         powerBar.GetComponent<Healthbar>().SetHealth(50f);
         float a = 36.4489496258712f;
         float b = -2.98046118445402f;
@@ -910,189 +911,193 @@ public class Balls : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown("r"))
+        if (!(Time.timeScale ==0f))
         {
-            canvas.SetActive(!canvas.active);
-        }
-        //Debug.Log(newBallsInBag.Count);
-        if (status == -2)
-        {
-            if (Random.Range(1, 11)<=4)
+            if (Input.GetKeyDown("r"))
             {
-                status = 2;
+                canvas.SetActive(!canvas.active);
             }
-            else
+            //Debug.Log(newBallsInBag.Count);
+            if (status == -2)
             {
-                status = 0;
-            }
-        }
-        else if (status == 0)
-        {
-            //UI
-            if (myColor==0)
-            {
-                txt.GetComponent<UnityEngine.UI.Text>().text = "You can aim at any ball";
-            }
-            else
-            {
-                txt.GetComponent<UnityEngine.UI.Text>().text = "You can only aim at "+((myColor==1)?"solid":"strip")+ " ball";
-            }
-            //
-            powerBar.GetComponent<Healthbar>().SetHealth(50f);
-            float a = 36.4489496258712f;
-            float b = -2.98046118445402f;
-            float c = 234.532924037123f;
-            float d = 0.0399968601588961f;
-            power = (a - d) / (1f + Mathf.Pow((50f / c), b)) + d;
-            W = 0;
-            H = 0;
-            RectTransform m_RectTransform = redDot.GetComponent<RectTransform>();
-            m_RectTransform.anchoredPosition = new Vector3(W, H, 0f);
-            LocateWhiteAndPlaceCue();
-            helperLineAndBall();
-            status = 1;
-        }
-        else if (status == 1)
-        {
-            runOnlyOnce = true;
-            if (helperReset)
-            {
-                helperReset = false;
-                helperLineAndBall();
-            }
-            if (Input.GetKey("w"))
-            {
-                powerBar.GetComponent<Healthbar>().GainHealth(1);
-                float a = 36.4489496258712f;
-                float b = -2.98046118445402f;
-                float c = 234.532924037123f;
-                float d = 0.0399968601588961f;
-                power = (a - d) / (1f + Mathf.Pow(((float)powerBar.GetComponent<Healthbar>().healthPercentage / c), b)) + d;
-                helperLineAndBall();
-            }
-            if (Input.GetKey("s"))
-            {
-                powerBar.GetComponent<Healthbar>().TakeDamage(1);
-                float a = 36.4489496258712f;
-                float b = -2.98046118445402f;
-                float c = 234.532924037123f;
-                float d = 0.0399968601588961f;
-                power = (a - d) / (1f + Mathf.Pow(((float)powerBar.GetComponent<Healthbar>().healthPercentage / c), b)) + d;
-                helperLineAndBall();
-            }
-            if (Input.GetKey("q"))
-            {
-                moveTarget(false, true);
-                helperLineAndBall();
-            }
-            if (Input.GetKey("e"))
-            {
-                moveTarget(true, true);
-                helperLineAndBall();
-            }
-            if (Input.GetKey("a"))
-            {
-                moveTarget(false);
-                helperLineAndBall();
-            }
-            if (Input.GetKey("d"))
-            {
-                moveTarget(true);
-                helperLineAndBall();
-            }
-            if (Input.GetKey(KeyCode.UpArrow))
-            {
-                spinAdjust(1);
-                helperLineAndBall();
-            }
-            if (Input.GetKey(KeyCode.DownArrow))
-            {
-                spinAdjust(2);
-                helperLineAndBall();
-            }
-            if (Input.GetKey(KeyCode.RightArrow))
-            {
-                spinAdjust(4);
-                helperLineAndBall();
-            }
-            if (Input.GetKey(KeyCode.LeftArrow))
-            {
-                spinAdjust(3);
-                helperLineAndBall();
-            }
-            if (Input.GetKey(KeyCode.RightShift))
-            {
-                spinAdjust(5);
-                helperLineAndBall();
-            }
-            if (Input.GetKeyUp(KeyCode.Space))
-            {
-                status = 4;
-                //Debug.Log(status);
-                HitBall();
-                txt.GetComponent<UnityEngine.UI.Text>().text = "";
-                helperReset = false;
-                eyes.transform.position = billiard.transform.TransformPoint(new Vector3(0, cameraHeight, 0));
-                eyes.transform.LookAt(billiard.transform);
-            }
-        }
-        else if (status == 4 || status == 5)
-        {
-            if (noBallIsMoving())
-            {
-                StartCoroutine(wait(status));
-                status = -1;
-            }
-
-        }
-        else if (status ==6)
-        {
-            balls[0].GetComponent<ball0Script>().isfreeball = false;
-            balls[0].GetComponent<ball0Script>().inbag = false;
-            balls[0].GetComponent<ball0Script>().gEnabled = false;
-            balls[0].SetActive(true);
-            eyes.transform.position = billiard.transform.TransformPoint(new Vector3(0, cameraHeight, 0));
-            eyes.transform.LookAt(billiard.transform);
-            Vector3 screenPosition = Camera.main.WorldToScreenPoint(white.transform.position);
-            Vector3 mousePositionOnScreen = Input.mousePosition;
-            mousePositionOnScreen.z = screenPosition.z;
-            Vector3 mousePositionInWorld = Camera.main.ScreenToWorldPoint(mousePositionOnScreen);
-            mousePositionInWorld.z = Mathf.Min(zMax, mousePositionInWorld.z);
-            mousePositionInWorld.z = Mathf.Max(zMin, mousePositionInWorld.z);
-            mousePositionInWorld.x = Mathf.Min(xMax, mousePositionInWorld.x);
-            mousePositionInWorld.x = Mathf.Max(xMin, mousePositionInWorld.x);
-            mousePositionInWorld.y = yHeight;
-            //鼠标点击 判断是否合法：合法就摆放
-            if (!collideWtihAnotherBallOnPos(mousePositionInWorld))
-            {
-                white.transform.position = mousePositionInWorld;
-            }
-            //status = 0;
-            if (Input.GetMouseButtonDown(0))
-            {
-                if (!collideWtihAnotherBallOnPos(mousePositionInWorld))
+                if (Random.Range(1, 11) <= 4)
+                {
+                    status = 2;
+                }
+                else
                 {
                     status = 0;
                 }
-                else 
-                { 
-                    //UI txt
+            }
+            else if (status == 0)
+            {
+                //UI
+                if (myColor == 0)
+                {
+                    txt.GetComponent<UnityEngine.UI.Text>().text = "You can aim at any ball";
+                }
+                else
+                {
+                    txt.GetComponent<UnityEngine.UI.Text>().text = "You can only aim at " + ((myColor == 1) ? "solid" : "strip") + " ball";
+                }
+                //
+                powerBar.GetComponent<Healthbar>().SetHealth(50f);
+                float a = 36.4489496258712f;
+                float b = -2.98046118445402f;
+                float c = 234.532924037123f;
+                float d = 0.0399968601588961f;
+                power = (a - d) / (1f + Mathf.Pow((50f / c), b)) + d;
+                W = 0;
+                H = 0;
+                RectTransform m_RectTransform = redDot.GetComponent<RectTransform>();
+                m_RectTransform.anchoredPosition = new Vector3(W, H, 0f);
+                LocateWhiteAndPlaceCue();
+                helperLineAndBall();
+                status = 1;
+            }
+            else if (status == 1)
+            {
+                runOnlyOnce = true;
+                if (helperReset)
+                {
+                    helperReset = false;
+                    helperLineAndBall();
+                }
+                if (Input.GetKey("w"))
+                {
+                    powerBar.GetComponent<Healthbar>().GainHealth(1);
+                    float a = 36.4489496258712f;
+                    float b = -2.98046118445402f;
+                    float c = 234.532924037123f;
+                    float d = 0.0399968601588961f;
+                    power = (a - d) / (1f + Mathf.Pow(((float)powerBar.GetComponent<Healthbar>().healthPercentage / c), b)) + d;
+                    helperLineAndBall();
+                }
+                if (Input.GetKey("s"))
+                {
+                    powerBar.GetComponent<Healthbar>().TakeDamage(1);
+                    float a = 36.4489496258712f;
+                    float b = -2.98046118445402f;
+                    float c = 234.532924037123f;
+                    float d = 0.0399968601588961f;
+                    power = (a - d) / (1f + Mathf.Pow(((float)powerBar.GetComponent<Healthbar>().healthPercentage / c), b)) + d;
+                    helperLineAndBall();
+                }
+                if (Input.GetKey("q"))
+                {
+                    moveTarget(false, true);
+                    helperLineAndBall();
+                }
+                if (Input.GetKey("e"))
+                {
+                    moveTarget(true, true);
+                    helperLineAndBall();
+                }
+                if (Input.GetKey("a"))
+                {
+                    moveTarget(false);
+                    helperLineAndBall();
+                }
+                if (Input.GetKey("d"))
+                {
+                    moveTarget(true);
+                    helperLineAndBall();
+                }
+                if (Input.GetKey(KeyCode.UpArrow))
+                {
+                    spinAdjust(1);
+                    helperLineAndBall();
+                }
+                if (Input.GetKey(KeyCode.DownArrow))
+                {
+                    spinAdjust(2);
+                    helperLineAndBall();
+                }
+                if (Input.GetKey(KeyCode.RightArrow))
+                {
+                    spinAdjust(4);
+                    helperLineAndBall();
+                }
+                if (Input.GetKey(KeyCode.LeftArrow))
+                {
+                    spinAdjust(3);
+                    helperLineAndBall();
+                }
+                if (Input.GetKey(KeyCode.RightShift))
+                {
+                    spinAdjust(5);
+                    helperLineAndBall();
+                }
+                if (Input.GetKeyUp(KeyCode.Space))
+                {
+                    status = 4;
+                    //Debug.Log(status);
+                    HitBall();
+                    txt.GetComponent<UnityEngine.UI.Text>().text = "";
+                    helperReset = false;
+                    eyes.transform.position = billiard.transform.TransformPoint(new Vector3(0, cameraHeight, 0));
+                    eyes.transform.LookAt(billiard.transform);
                 }
             }
+            else if (status == 4 || status == 5)
+            {
+                if (noBallIsMoving())
+                {
+                    StartCoroutine(wait(status));
+                    status = -1;
+                }
+
+            }
+            else if (status == 6)
+            {
+                balls[0].GetComponent<ball0Script>().isfreeball = false;
+                balls[0].GetComponent<ball0Script>().inbag = false;
+                balls[0].GetComponent<ball0Script>().gEnabled = false;
+                balls[0].SetActive(true);
+                eyes.transform.position = billiard.transform.TransformPoint(new Vector3(0, cameraHeight, 0));
+                eyes.transform.LookAt(billiard.transform);
+                Vector3 screenPosition = Camera.main.WorldToScreenPoint(white.transform.position);
+                Vector3 mousePositionOnScreen = Input.mousePosition;
+                mousePositionOnScreen.z = screenPosition.z;
+                Vector3 mousePositionInWorld = Camera.main.ScreenToWorldPoint(mousePositionOnScreen);
+                mousePositionInWorld.z = Mathf.Min(zMax, mousePositionInWorld.z);
+                mousePositionInWorld.z = Mathf.Max(zMin, mousePositionInWorld.z);
+                mousePositionInWorld.x = Mathf.Min(xMax, mousePositionInWorld.x);
+                mousePositionInWorld.x = Mathf.Max(xMin, mousePositionInWorld.x);
+                mousePositionInWorld.y = yHeight;
+                //鼠标点击 判断是否合法：合法就摆放
+                if (!collideWtihAnotherBallOnPos(mousePositionInWorld))
+                {
+                    white.transform.position = mousePositionInWorld;
+                }
+                //status = 0;
+                if (Input.GetMouseButtonDown(0))
+                {
+                    if (!collideWtihAnotherBallOnPos(mousePositionInWorld))
+                    {
+                        status = 0;
+                    }
+                    else
+                    {
+                        //UI txt
+                    }
+                }
+            }
+            else if (status == 7)
+            {
+                status = -1;
+                freeBall(7);
+            }
+            else if (status == 2)
+            {
+                status = -1;
+                prevBallsInBag.AddRange(newBallsInBag);
+                newBallsInBag.Clear();
+                whiteTouched.Clear();
+                oppo.Start();
+                oppo.AIThinking(false);
+            }
         }
-        else if (status==7)
-        {
-            status = -1;
-            freeBall(7);
-        }
-        else if (status == 2)
-        {
-            status = -1;
-            prevBallsInBag.AddRange(newBallsInBag);
-            newBallsInBag.Clear();
-            whiteTouched.Clear();
-            oppo.Start();
-            oppo.AIThinking(false);
-        }
+        
     }
 }
