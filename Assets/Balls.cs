@@ -89,6 +89,7 @@ public class Balls : MonoBehaviour
     public List<int> prevBallsInBag;
     public List<int> newBallsInBag;
     public List<int> whiteTouched;
+    public int whiteHitWallTime;
 
     public int myColor;//0: not clear yet, 1: solid, 2:strip
     public int oppoColor;//0: not clear yet,1: solid, 2:strip
@@ -752,7 +753,7 @@ public class Balls : MonoBehaviour
         {
             //#2
             Debug.Log("game logic:\t#2");
-            if (whiteTouched.Count > 0)
+            if (whiteTouched.Count > 0 && whiteHitWallTime<3)
             {
                 //#4
                 Debug.Log("game logic:\t#4");
@@ -882,6 +883,7 @@ public class Balls : MonoBehaviour
         prevBallsInBag.AddRange(newBallsInBag);
         newBallsInBag.Clear();
         whiteTouched.Clear();
+        whiteHitWallTime = 0;
     }
 
     IEnumerator wait(int s)

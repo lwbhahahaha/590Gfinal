@@ -157,7 +157,6 @@ public class ball0Script : MonoBehaviour
 
     void hitWall()
     {
-
         playSound(1,v.magnitude);
         v.y = 0;
         Vector3 p0 = transform.position;
@@ -497,6 +496,8 @@ public class ball0Script : MonoBehaviour
         }
         else if (name.Contains("wall"))
         {
+            if (ballsScript.whiteTouched.Count==0)
+                ballsScript.whiteHitWallTime++;
             hitWall();
             //Debug.Log("table");
         }
