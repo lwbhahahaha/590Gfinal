@@ -354,11 +354,21 @@ public class AI : MonoBehaviour
 
     void RandomShoot()
     {
-        float W = NextGaussian(0f, 5f, -40f, 40f);
-        float H = NextGaussian(0f, 5f, -40f, 40f);
-        float power = NextGaussian(0.37f, 0.002f, 0.3f, 0.5f);
+        int targettemp;
+        int ct = 0;
         float angle = Random.Range(0f, 360f);
         Vector3 Direction = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
+        while (ct<=100)
+        {
+            ct++;
+            targettemp = Random.Range(1, 15);
+            if (!balls[targettemp].GetComponent<ball0Script>().inbag)
+                Direction = (balls[targettemp].transform.position- balls[0].transform.position).normalized;
+        }
+
+        float W = NextGaussian(0f, 5f, -40f, 40f);
+        float H = NextGaussian(0f, 5f, -40f, 40f);
+        float power = NextGaussian(0.5f, 0.002f, 0.3f, 0.6f);
         Vector3 whitePos = balls[0].transform.position;
 
         Vector3 spinV = Quaternion.Euler(0, -W * 45f / 80f, 0) * Quaternion.AngleAxis(H * 45f / 80f, Quaternion.Euler(0, 90, 0) * Direction) * (-Direction) * ballR;

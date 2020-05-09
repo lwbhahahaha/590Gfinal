@@ -94,7 +94,8 @@ public class Balls : MonoBehaviour
     public int myColor;//0: not clear yet, 1: solid, 2:strip
     public int oppoColor;//0: not clear yet,1: solid, 2:strip
 
-    public int status;//0: My turn, setting things up; 1: I'm ready to shoot;  
+    public int status;  //-2 game start;
+                        //0: My turn, setting things up; 1: I'm ready to shoot;  
                        //2: oppo turn, setting things up 3: oppo is ready to shoot
                        //4:I shoot and wait until ball stops
                        //5:oppo shoot and wait until ball stops
@@ -125,7 +126,7 @@ public class Balls : MonoBehaviour
         //Time.timeScale = 0.2f;
         distance = 0.028575f * scale;
         ballR = distance;
-        status = 0;
+        status = -2;
         myColor = 0;
         oppoColor = 0;
         W = 0f;
@@ -775,23 +776,37 @@ public class Balls : MonoBehaviour
                         {
                             //#9
                             Debug.Log("game logic:\t#9");
-                            if (s == 5)
+                            int SolidCt = 0;
+                            int StripCt = 0;
+                            for (int i=0; i< newBallsInBag.Count;i++)
                             {
-                                oppoColor = ballNumToColor(newBallsInBag[0]);
-                                myColor = 3 - oppoColor;
-                                oppo.AIColor = oppoColor;
-                                Debug.Log("确定AI的花色是: " + ((oppoColor == 1) ? "solid" : "strip"));
+                                if (newBallsInBag[i] >= 9)
+                                    StripCt++;
+                                else if (newBallsInBag[i] <= 7 && newBallsInBag[i] > 0)
+                                    SolidCt++;
                             }
-                            else
+                            if (!(SolidCt>0 && StripCt>0))
                             {
-                                myColor = ballNumToColor(newBallsInBag[0]);
-                                oppoColor = 3 - myColor;
-                                oppo.AIColor = oppoColor;
-                                Debug.Log("确定我的花色是: "+ ((myColor==1)?"solid":"strip"));
+                                if (s == 5)
+                                {
+                                    oppoColor = ballNumToColor(newBallsInBag[0]);
+                                    myColor = 3 - oppoColor;
+                                    oppo.AIColor = oppoColor;
+                                    Debug.Log("确定AI的花色是: " + ((oppoColor == 1) ? "solid" : "strip"));
+                                }
+                                else
+                                {
+                                    myColor = ballNumToColor(newBallsInBag[0]);
+                                    oppoColor = 3 - myColor;
+                                    oppo.AIColor = oppoColor;
+                                    Debug.Log("确定我的花色是: " + ((myColor == 1) ? "solid" : "strip"));
+                                }
+                                //#11
+                                Debug.Log("game logic:\t#11");
                             }
-                            //#11
-                            Debug.Log("game logic:\t#11");
+
                             keepGoing(s);
+
                         }
                     }
                     else
@@ -900,7 +915,18 @@ public class Balls : MonoBehaviour
             canvas.SetActive(!canvas.active);
         }
         //Debug.Log(newBallsInBag.Count);
-        if (status == 0)
+        if (status == -2)
+        {
+            if (Random.Range(1, 3)==1)
+            {
+                status = 0;
+            }
+            else
+            {
+                status = 2;
+            }
+        }
+        else if (status == 0)
         {
             //UI
             if (myColor==0)
@@ -926,7 +952,7 @@ public class Balls : MonoBehaviour
             helperLineAndBall();
             status = 1;
         }
-        if (status == 1)
+        else if (status == 1)
         {
             runOnlyOnce = true;
             if (helperReset)
@@ -1010,7 +1036,7 @@ public class Balls : MonoBehaviour
                 eyes.transform.LookAt(billiard.transform);
             }
         }
-        if (status == 4 || status == 5)
+        else if (status == 4 || status == 5)
         {
             if (noBallIsMoving())
             {
