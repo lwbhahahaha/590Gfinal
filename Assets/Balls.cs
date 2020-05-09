@@ -132,7 +132,7 @@ public class Balls : MonoBehaviour
         iniBalls();
         cameraHeight = 3f * scale;
         int[] startPos = randomStart();
-        //putBalls(startPos);
+        putBalls(startPos);
         //Debug.DrawLine(white.transform.position, white.transform.position+new Vector3(distance,0,0), Color.white, 15f);//normal
         //cueLength = Vector3.Distance(cueHead.transform.position, cueTail.transform.position);
         //eyes = camera.GetComponent<Camera>();
