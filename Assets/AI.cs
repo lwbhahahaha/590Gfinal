@@ -64,11 +64,11 @@ public class AI : MonoBehaviour
     {
         if (AIColor == 0)
             return 0;
-        if (ball == 9)
-            return -1;
+        if (ball >= 9)
+            return 2;
         if (ball <= 7)
             return 1;
-        return 2;
+        return 0;
     }
 
     GameObject findABallStraightToBag(GameObject white = null)
@@ -198,7 +198,7 @@ public class AI : MonoBehaviour
     {
         for (int i = 1; i < 16; i++)
         {
-            if ((balls[i].transform.position - pos).magnitude <= 2f * ballR)
+            if ((balls[i].transform.position - pos).magnitude <= 2f * ballR*1.03f)
                 return true;
         }
         return false;
@@ -237,7 +237,7 @@ public class AI : MonoBehaviour
             balls[0].transform.position = newWhitePos;
             GameObject currTarget = findABallStraightToBag(balls[0]);
             int ct = 0;
-            while (!isOnTable(newWhitePos) && collideWtihAnotherBallOnPos(newWhitePos) && target != currTarget && ct <= 100)
+            while (!isOnTable(newWhitePos) && collideWtihAnotherBallOnPos(newWhitePos) && target != currTarget)
             {
                 distance = Random.Range(3f * ballR, 20f * ballR);
                 newWhitePos = (target.transform.position - bagPos[targetBag]).normalized * distance + target.transform.position;
@@ -356,7 +356,7 @@ public class AI : MonoBehaviour
     {
         float W = NextGaussian(0f, 5f, -40f, 40f);
         float H = NextGaussian(0f, 5f, -40f, 40f);
-        float power = NextGaussian(0.37f, 0.002f, 0.07f, 0.7f);
+        float power = NextGaussian(0.37f, 0.002f, 0.3f, 0.5f);
         float angle = Random.Range(0f, 360f);
         Vector3 Direction = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
         Vector3 whitePos = balls[0].transform.position;
@@ -373,7 +373,7 @@ public class AI : MonoBehaviour
         float h = (a - d) / (1f + Mathf.Pow((power / c), b)) + d;
         powerBar.GetComponent<Healthbar>().SetHealth((int)h);
 
-        balls[0].GetComponent<ball0Script>().hittedByCue(Direction * power * scale, whitePos + spinV, scale);
+        balls[0].GetComponent<ball0Script>().hittedByCue(Direction * power * scale * scale, whitePos + spinV, scale);
         ballsScript.status = 5;
         Debug.Log("随机击球");
     }
@@ -396,6 +396,7 @@ public class AI : MonoBehaviour
             Mathf.Cos(theta) * Mathf.Cos(theta) * k * k
             ));
         float power = NextGaussian(vMin * 1.5f * mass, 0.002f, vMin * mass, vMin * 2f * mass);
+        power = Mathf.Min(power, 0.5f * scale * scale);
         float W = NextGaussian(0f, 1f, -40f, 40f);
         float H = NextGaussian(-10f, 2f, -40f, 0f);
         Vector3 spinV = Quaternion.Euler(0, -W * 45f / 80f, 0) * Quaternion.AngleAxis(H * 45f / 80f, Quaternion.Euler(0, 90, 0) * direction) * (-direction) * ballR;
@@ -420,10 +421,10 @@ public class AI : MonoBehaviour
     {
         //calculate min v
         Vector3 whitePos = balls[0].transform.position;
-        float power = NextGaussian(0.3f, 0.0002f, 0.07f, 0.7f);
+        float power = NextGaussian(0.3f, 0.0002f, 0.07f, 0.5f);
         Debug.Log("普通击球\t" + power);
         //Debug.DrawRay(whitePos, direction * power, Color.white, 15f);
-        balls[0].GetComponent<ball0Script>().hittedByCue(direction * power * scale/4f* scale, whitePos, scale);
+        balls[0].GetComponent<ball0Script>().hittedByCue(direction * power * scale* scale, whitePos, scale);
 
         float a = 102.73574623625f;
         float b = -1.91154301352143f;
@@ -462,6 +463,7 @@ public class AI : MonoBehaviour
             Mathf.Cos(theta) * Mathf.Cos(theta) * k * k
             ));
         float power = NextGaussian(vMin * mass, 0.002f, 0.8f * vMin * mass, vMin * 1.2f * mass);
+        power = Mathf.Min(power, 0.6f * scale * scale);
         //Debug.DrawRay(whitePos, direction * power, Color.white, 15f);
         balls[0].GetComponent<ball0Script>().hittedByCue(direction * power * scale, whitePos, scale);
         ballsScript.status = 5;
@@ -630,7 +632,7 @@ public class AI : MonoBehaviour
         int ct= 0;
         for (int i = 1; i < 16; i++)
         {
-            if (ballNumToColor(i) == AIColor && !balls[i].GetComponent<ball0Script>().inbag)
+            if (i!=8 && ballNumToColor(i) == AIColor && !balls[i].GetComponent<ball0Script>().inbag)
                 ct++;
         }
         return ct == 0;

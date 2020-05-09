@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Balls : MonoBehaviour
 {
+    public GameObject canvas;
     public GameObject[] balls;
     public GameObject billiard;
     public GameObject white;
@@ -89,8 +90,8 @@ public class Balls : MonoBehaviour
     public List<int> newBallsInBag;
     public List<int> whiteTouched;
 
-    private int myColor;//0: not clear yet, 1: solid, 2:strip
-    private int oppoColor;//0: not clear yet,1: solid, 2:strip
+    public int myColor;//0: not clear yet, 1: solid, 2:strip
+    public int oppoColor;//0: not clear yet,1: solid, 2:strip
 
     public int status;//0: My turn, setting things up; 1: I'm ready to shoot;  
                        //2: oppo turn, setting things up 3: oppo is ready to shoot
@@ -131,7 +132,7 @@ public class Balls : MonoBehaviour
         iniBalls();
         cameraHeight = 3f * scale;
         int[] startPos = randomStart();
-        putBalls(startPos);
+        //putBalls(startPos);
         //Debug.DrawLine(white.transform.position, white.transform.position+new Vector3(distance,0,0), Color.white, 15f);//normal
         //cueLength = Vector3.Distance(cueHead.transform.position, cueTail.transform.position);
         //eyes = camera.GetComponent<Camera>();
@@ -277,11 +278,17 @@ public class Balls : MonoBehaviour
             return rslt;
         }
 
+        if(isTimeForBlackBall(4))
+        {
+            return balls[8];
+        }
+
         float minDD = 10000f;
         GameObject rsltt = black;//may have a bug here. check later
         for (int i = 1; i < 16; i++)
         {
-            if (!balls[i].activeSelf || i == 8 || ballNumToColor(i)!=color)
+            //if (ballNumToColor(i) != AIColor || i == 8 || balls[i].GetComponent<ball0Script>().inbag)
+            if (balls[i].GetComponent<ball0Script>().inbag || i == 8 || ballNumToColor(i)!=color)
                 continue;
             GameObject currBall = balls[i];
             float tempDist = Vector3.Distance(whitepos, balls[i].transform.position);
@@ -332,7 +339,7 @@ public class Balls : MonoBehaviour
         float y = cue.transform.rotation.eulerAngles.y;
         cue.transform.localEulerAngles = new Vector3(0, y - 90f, -x);
         //set target
-
+        Direction.y = 0;
         target.transform.position = white.transform.position;
         target.transform.position -= Direction * scale / 10f;
     }
@@ -581,33 +588,52 @@ public class Balls : MonoBehaviour
     {
         if (isTimeForBlackBall(s))
         {
-            return s == 8;
+            return whiteTouched[0] == 8;
         }
         if (s == 5)
         {
             return ballNumToColor(whiteTouched[0]) == oppoColor;
         }
+        Debug.Log("my color:\t"+ myColor+"\tfirst hit:\t"+ whiteTouched[0]+"\t which is\t"+ ballNumToColor(whiteTouched[0]));
         return ballNumToColor(whiteTouched[0]) == myColor;
     }
 
     bool isTimeForBlackBall(int s)
     {
+        if (myColor == 0)
+            return false;
+
         int ct = 0;
+        int ctt = 0;
         if (s == 5)
         {
-            for (int i = 0; i < prevBallsInBag.Count; i++)
+            for (int i = 1; i < 16; i++)
             {
-                if (ballNumToColor(prevBallsInBag[i]) == oppoColor)
+                if (i == 8)
+                    continue;
+                if (balls[i].GetComponent<ball0Script>().inbag && ((i <= 7) ? 1 : 2) == oppoColor  && newBallsInBag.Contains(i))
+                    ctt++;
+                if (((i<=7)?1:2) == oppoColor && !balls[i].GetComponent<ball0Script>().inbag)
                     ct++;
             }
-            return ct == 7;
         }
-        for (int i = 0; i < prevBallsInBag.Count; i++)
-        {
-            if (ballNumToColor(prevBallsInBag[i]) == myColor)
-                ct++;
+        else 
+        { 
+            for (int i = 1; i < 16; i++)
+            {
+                if (i == 8)
+                    continue;
+                if (balls[i].GetComponent<ball0Script>().inbag && ((i <= 7) ? 1 : 2) == myColor && newBallsInBag.Contains(i))
+                    ctt++;
+                if (((i <= 7) ? 1 : 2) == myColor && !balls[i].GetComponent<ball0Script>().inbag)
+                    ct++;
+            }
         }
-        return ct == 7;
+        string temp = " ";
+        if (ct+ctt != 0)
+            temp = "n't ";
+        Debug.Log("should"+ temp + "hit black\tct= "+ct);
+        return ct + ctt == 0;
         //刚刚击球的人应该打黑八？
     }
 
@@ -641,6 +667,10 @@ public class Balls : MonoBehaviour
 
     int ballNumToColor(int ball)
     {
+        if (isTimeForBlackBall(4))
+            return myColor;
+        if (isTimeForBlackBall(5))
+            return oppoColor;
         if (ball == 8)
             return -1;
         if (ball <= 7)
@@ -682,6 +712,18 @@ public class Balls : MonoBehaviour
     }
     void keepGoing(int s)
     {
+        if (s==4)
+        {
+            //Search all newBallsInBag
+            //If ballNumToColor(ball in bag) = my color
+            //increase my scoreboard
+        }
+        else
+        {
+            //Search all newBallsInBag
+            //If ballNumToColor(ball in bag) = oppo color
+            //increase oppo scoreboard
+        }
         status = s * 2 - 8;
     }
 
@@ -691,12 +733,20 @@ public class Balls : MonoBehaviour
         Debug.Log("game logic:\t#1");
         if (newBallsInBag.Contains(0))
         {
-            //#3
-            Debug.Log("game logic:\t#3");
-            if (s == 5)
-                status = 6;
+            if (isTimeForBlackBall(s) && newBallsInBag.Contains(8))
+            {//#2.5
+                Debug.Log("game logic:\t#2.5");
+                lose(s);
+            }
             else
-                status = 7;
+            {
+                //#3
+                Debug.Log("game logic:\t#3");
+                if (s == 5)
+                    status = 6;
+                else
+                    status = 7;
+            }
         }
         else
         {
@@ -843,6 +893,10 @@ public class Balls : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKeyDown("r"))
+        {
+            canvas.SetActive(!canvas.active);
+        }
         //Debug.Log(newBallsInBag.Count);
         if (status == 0)
         {
