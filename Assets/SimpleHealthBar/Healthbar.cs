@@ -17,7 +17,7 @@ public class Healthbar : MonoBehaviour {
     public int healthPercentage = 100;
 
     // Minimum possible heath:
-    [Tooltip("Minimum possible heath: (default is 0)")] public float minimumHealth = 0;
+    [Tooltip("Minimum possible heath: (default is 0)")] public float minimumHealth = 3;
 
     // Maximum possible health:
     [Tooltip("Maximum possible heath: (default is 100)")] public float maximumHealth = 100;

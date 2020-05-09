@@ -1810,6 +1810,7 @@ MonoBehaviour:
   prevBallsInBag: 
   newBallsInBag: 
   whiteTouched: 
+  whiteHitWallTime: 0
   myColor: 0
   oppoColor: 0
   status: 0
@@ -7554,6 +7555,11 @@ PrefabInstance:
         type: 3}
       propertyPath: regenerateHealth
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 114359963609766598, guid: d16a19242f7da6d4794facdc63b9c915,
+        type: 3}
+      propertyPath: minimumHealth
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 114842927137272866, guid: d16a19242f7da6d4794facdc63b9c915,
         type: 3}
