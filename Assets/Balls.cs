@@ -917,13 +917,13 @@ public class Balls : MonoBehaviour
         //Debug.Log(newBallsInBag.Count);
         if (status == -2)
         {
-            if (Random.Range(1, 3)==1)
+            if (Random.Range(1, 11)<=4)
             {
-                status = 0;
+                status = 2;
             }
             else
             {
-                status = 2;
+                status = 0;
             }
         }
         else if (status == 0)
