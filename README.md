@@ -6,7 +6,7 @@ This version of Pool Room contains:
 
 ​	3. AI Opponent
 
-​	4. UI and HUD [PowerBar Adapted from Asset Store HealthBar]
+​	4. UI and HUD
 
 ****Note that some Debug.Log messages show Chinese, that is for personal convenience.
 
@@ -68,3 +68,8 @@ Details:
 | AI.cs                | getWhiteOutputToBag         | Yes       | Check  the exit angle of the cue ball is toward a bag i.e check the potential of  pocketing of the cue ball |
 | AI.cs                | AIThinking                  | Yes       | Performe  AI thinking logic                                  |
 | AI.cs                | AIShoot                     | Yes       | Performe  AI shooting logic                                  |
+
+Other:
+
+* Powerbar Adapted from Free Asset Store Healthbar
+* Pool Table and Balls Purchased on Asset Store
