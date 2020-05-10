@@ -4,6 +4,16 @@ using UnityEngine;
 
 public class Balls : MonoBehaviour
 {
+
+    public GameObject scores;
+    public GameObject stripes;
+    public GameObject solids;
+    public GameObject logoAI;
+    public GameObject controls;
+    public GameObject winScreen;
+    public GameObject loseScreen;
+    public GameObject resetButton;
+
     public GameObject canvas;
     public GameObject[] balls;
     public GameObject billiard;
@@ -30,7 +40,7 @@ public class Balls : MonoBehaviour
     public GameObject redDot;
     public GameObject helperBall;
     public GameObject powerBar;
-    public GameObject txt;
+
     public float distance;// ball d=2r
     public float fxtime = 0.01f;
     public float scale;
@@ -93,18 +103,47 @@ public class Balls : MonoBehaviour
 
     public int myColor;//0: not clear yet, 1: solid, 2:strip
     public int oppoColor;//0: not clear yet,1: solid, 2:strip
+    private int solidCount = 0;
+    private int stripeCount = 0;
 
     public int status;  //-2 game start;
                         //0: My turn, setting things up; 1: I'm ready to shoot;  
-                       //2: oppo turn, setting things up 3: oppo is ready to shoot
-                       //4:I shoot and wait until ball stops
-                       //5:oppo shoot and wait until ball stops
-                       //6:My freeball
-                       //7:oppo freeball
+                        //2: oppo turn, setting things up 3: oppo is ready to shoot
+                        //4:I shoot and wait until ball stops
+                        //5:oppo shoot and wait until ball stops
+                        //6:My freeball
+                        //7:oppo freeball
 
     // Start is called before the first frame update
+
+    public void setTime()
+    {
+        Time.timeScale = 1f;
+    }
+
+    public void resetGame()
+    {
+        Start();
+        status = -2;
+        line1.SetVertexCount(0);
+        line2.SetVertexCount(0);
+        line3.SetVertexCount(0);
+        target.SetActive(false);
+
+        for (int i = 0; i < 16; i++)
+        {
+            balls[i].GetComponent<ball0Script>().inbag = false;
+            balls[i].GetComponent<ball0Script>().v *= 0;
+            balls[i].GetComponent<ball0Script>().wtemp *= 0;
+            balls[i].GetComponent<ball0Script>().spin *= 0;
+        }
+    }
+
     void Start()
     {
+        prevBallsInBag.Clear();
+        newBallsInBag.Clear();
+        whiteTouched.Clear();
         Time.timeScale = 0f;
         powerBar.GetComponent<Healthbar>().SetHealth(50f);
         float a = 36.4489496258712f;
@@ -262,7 +301,7 @@ public class Balls : MonoBehaviour
 
     GameObject findNearestBall(Vector3 whitepos, int color = 0)
     {
-        if (color==0)
+        if (color == 0)
         {
             float minD = 10000f;
             GameObject rslt = white;
@@ -281,7 +320,7 @@ public class Balls : MonoBehaviour
             return rslt;
         }
 
-        if(isTimeForBlackBall(4))
+        if (isTimeForBlackBall(4))
         {
             return balls[8];
         }
@@ -291,7 +330,7 @@ public class Balls : MonoBehaviour
         for (int i = 1; i < 16; i++)
         {
             //if (ballNumToColor(i) != AIColor || i == 8 || balls[i].GetComponent<ball0Script>().inbag)
-            if (balls[i].GetComponent<ball0Script>().inbag || i == 8 || ballNumToColor(i)!=color)
+            if (balls[i].GetComponent<ball0Script>().inbag || i == 8 || ballNumToColor(i) != color)
                 continue;
             GameObject currBall = balls[i];
             float tempDist = Vector3.Distance(whitepos, balls[i].transform.position);
@@ -301,7 +340,7 @@ public class Balls : MonoBehaviour
                 rsltt = currBall;
             }
         }
-        Debug.Log("下一个是：" + rsltt.name) ;
+        Debug.Log("下一个是：" + rsltt.name);
         return rsltt;
     }
 
@@ -427,6 +466,8 @@ public class Balls : MonoBehaviour
                 line1.SetPosition(0, whitePos);
                 line1.SetPosition(1, whitePos + Direction * Lmax);
                 line1.SetWidth(0.5f, 0.5f);
+                line2.SetVertexCount(0);
+                line3.SetVertexCount(0);
                 return whitePos + Direction * Lmax;
             }
             else
@@ -597,12 +638,14 @@ public class Balls : MonoBehaviour
         {
             return ballNumToColor(whiteTouched[0]) == oppoColor;
         }
-        Debug.Log("my color:\t"+ myColor+"\tfirst hit:\t"+ whiteTouched[0]+"\t which is\t"+ ballNumToColor(whiteTouched[0]));
+        Debug.Log("my color:\t" + myColor + "\tfirst hit:\t" + whiteTouched[0] + "\t which is\t" + ballNumToColor(whiteTouched[0]));
         return ballNumToColor(whiteTouched[0]) == myColor;
     }
 
     bool isTimeForBlackBall(int s)
     {
+        
+
         if (myColor == 0)
             return false;
 
@@ -614,14 +657,14 @@ public class Balls : MonoBehaviour
             {
                 if (i == 8)
                     continue;
-                if (balls[i].GetComponent<ball0Script>().inbag && ((i <= 7) ? 1 : 2) == oppoColor  && newBallsInBag.Contains(i))
+                if (balls[i].GetComponent<ball0Script>().inbag && ((i <= 7) ? 1 : 2) == oppoColor && newBallsInBag.Contains(i))
                     ctt++;
-                if (((i<=7)?1:2) == oppoColor && !balls[i].GetComponent<ball0Script>().inbag)
+                if (((i <= 7) ? 1 : 2) == oppoColor && !balls[i].GetComponent<ball0Script>().inbag)
                     ct++;
             }
         }
-        else 
-        { 
+        else
+        {
             for (int i = 1; i < 16; i++)
             {
                 if (i == 8)
@@ -633,9 +676,9 @@ public class Balls : MonoBehaviour
             }
         }
         string temp = " ";
-        if (ct+ctt != 0)
+        if (ct + ctt != 0)
             temp = "n't ";
-        Debug.Log("should"+ temp + "hit black\tct= "+ct);
+        Debug.Log("should" + temp + "hit black\tct= " + ct);
         return ct + ctt == 0;
         //刚刚击球的人应该打黑八？
     }
@@ -684,9 +727,9 @@ public class Balls : MonoBehaviour
     void win(int s)
     {
         if (s == 5)
-            txt.GetComponent<UnityEngine.UI.Text>().text = "You lose!";
+            loseScreen.SetActive(true);
         else
-            txt.GetComponent<UnityEngine.UI.Text>().text = "You win!";
+            winScreen.SetActive(true);
         //刚刚击球的人胜利
     }
 
@@ -694,9 +737,9 @@ public class Balls : MonoBehaviour
     {
         //刚刚击球的人失败
         if (s == 4)
-            txt.GetComponent<UnityEngine.UI.Text>().text = "You lose!";
+            loseScreen.SetActive(true);
         else
-            txt.GetComponent<UnityEngine.UI.Text>().text = "You win!";
+            winScreen.SetActive(true);
     }
 
     bool hasValidColor(int s)
@@ -715,7 +758,7 @@ public class Balls : MonoBehaviour
     }
     void keepGoing(int s)
     {
-        if (s==4)
+        if (s == 4)
         {
             //Search all newBallsInBag
             //If ballNumToColor(ball in bag) = my color
@@ -755,7 +798,7 @@ public class Balls : MonoBehaviour
         {
             //#2
             Debug.Log("game logic:\t#2");
-            if (whiteTouched.Count > 0 && whiteHitWallTime<3)
+            if (whiteTouched.Count > 0 && whiteHitWallTime < 3)
             {
                 //#4
                 Debug.Log("game logic:\t#4");
@@ -779,14 +822,14 @@ public class Balls : MonoBehaviour
                             Debug.Log("game logic:\t#9");
                             int SolidCt = 0;
                             int StripCt = 0;
-                            for (int i=0; i< newBallsInBag.Count;i++)
+                            for (int i = 0; i < newBallsInBag.Count; i++)
                             {
                                 if (newBallsInBag[i] >= 9)
                                     StripCt++;
                                 else if (newBallsInBag[i] <= 7 && newBallsInBag[i] > 0)
                                     SolidCt++;
                             }
-                            if (!(SolidCt>0 && StripCt>0))
+                            if (!(SolidCt > 0 && StripCt > 0))
                             {
                                 if (s == 5)
                                 {
@@ -877,7 +920,7 @@ public class Balls : MonoBehaviour
                     {
                         //#14
                         Debug.Log("game logic:\t#14");
-                        Debug.Log("白球先打到："+ whiteTouched[0]);
+                        Debug.Log("白球先打到：" + whiteTouched[0]);
                         if (s == 5)
                             status = 6;
                         else
@@ -896,6 +939,17 @@ public class Balls : MonoBehaviour
                     status = 7;
             }
         }
+
+
+        for (int i = 0; i < newBallsInBag.Count; i++)
+        {
+            if (newBallsInBag[i] <= 7)
+                solidCount++;
+            else if (newBallsInBag[i] >= 9)
+                stripeCount++;
+        }
+        scores.GetComponent<UnityEngine.UI.Text>().text = "Solids - " + solidCount + "/7 Stripes - " + stripeCount + "/7";
+
         prevBallsInBag.AddRange(newBallsInBag);
         newBallsInBag.Clear();
         whiteTouched.Clear();
@@ -911,16 +965,20 @@ public class Balls : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!(Time.timeScale ==0f))
+        if (!(Time.timeScale == 0f))
         {
             if (Input.GetKeyDown("r"))
             {
                 canvas.SetActive(!canvas.active);
             }
+            if (Input.GetKeyDown("c"))
+            {
+                controls.SetActive(!controls.active);
+            }
             //Debug.Log(newBallsInBag.Count);
             if (status == -2)
             {
-                if (Random.Range(1, 11) <= 4)
+                if (Random.Range(1, 3) == 1)
                 {
                     status = 2;
                 }
@@ -932,13 +990,20 @@ public class Balls : MonoBehaviour
             else if (status == 0)
             {
                 //UI
+                logoAI.SetActive(false);
                 if (myColor == 0)
                 {
-                    txt.GetComponent<UnityEngine.UI.Text>().text = "You can aim at any ball";
+                    //no color chosen yet
+                }
+                else if (myColor == 1)
+                {
+
+                    solids.SetActive(true);
                 }
                 else
                 {
-                    txt.GetComponent<UnityEngine.UI.Text>().text = "You can only aim at " + ((myColor == 1) ? "solid" : "strip") + " ball";
+
+                    stripes.SetActive(true);
                 }
                 //
                 powerBar.GetComponent<Healthbar>().SetHealth(50f);
@@ -1033,7 +1098,7 @@ public class Balls : MonoBehaviour
                     status = 4;
                     //Debug.Log(status);
                     HitBall();
-                    txt.GetComponent<UnityEngine.UI.Text>().text = "";
+
                     helperReset = false;
                     eyes.transform.position = billiard.transform.TransformPoint(new Vector3(0, cameraHeight, 0));
                     eyes.transform.LookAt(billiard.transform);
@@ -1050,6 +1115,7 @@ public class Balls : MonoBehaviour
             }
             else if (status == 6)
             {
+                logoAI.SetActive(false);
                 balls[0].GetComponent<ball0Script>().isfreeball = false;
                 balls[0].GetComponent<ball0Script>().inbag = false;
                 balls[0].GetComponent<ball0Script>().gEnabled = false;
@@ -1085,11 +1151,17 @@ public class Balls : MonoBehaviour
             }
             else if (status == 7)
             {
+                stripes.SetActive(false);
+                solids.SetActive(false);
+                logoAI.SetActive(true);
                 status = -1;
                 freeBall(7);
             }
             else if (status == 2)
             {
+                stripes.SetActive(false);
+                solids.SetActive(false);
+                logoAI.SetActive(true);
                 status = -1;
                 prevBallsInBag.AddRange(newBallsInBag);
                 newBallsInBag.Clear();
@@ -1098,6 +1170,6 @@ public class Balls : MonoBehaviour
                 oppo.AIThinking(false);
             }
         }
-        
+
     }
 }
