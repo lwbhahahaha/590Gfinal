@@ -12033,6 +12033,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ee56578d4c29be43886fa650bda94d6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  healthbarDisplay: {fileID: 7786268656174241058}
   health: 0
   healthPercentage: 100
   minimumHealth: 3

@@ -7,7 +7,7 @@ using UnityEngine.UI;
 public class Healthbar : MonoBehaviour {
 
     // Visible health bar ui:
-    private Slider healthbarDisplay;
+    public Slider healthbarDisplay;
 
     [Header("Main Variables:")]
     // Health variable: (default range: 0-100)
