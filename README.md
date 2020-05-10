@@ -1,14 +1,14 @@
-this version contains:
+This version of Pool Room contains:
 
-​	1.physics engine
+​	1. Custom physics engine
 
-​	2.8-ball game logic
+​	2. Modified eight-ball game logic
 
-​	3.AI
+​	3. AI Opponent
 
-​	4.UI
+​	4. UI and HUD
 
-****Note that some Debug.Log shows Chinese that is for my own convenience. Just ignore it and I'll change that later.
+****Note that some Debug.Log messages show Chinese, that is for personal convenience.
 
 Details:
 
@@ -68,3 +68,8 @@ Details:
 | AI.cs                | getWhiteOutputToBag         | Yes       | Check  the exit angle of the cue ball is toward a bag i.e check the potential of  pocketing of the cue ball |
 | AI.cs                | AIThinking                  | Yes       | Performe  AI thinking logic                                  |
 | AI.cs                | AIShoot                     | Yes       | Performe  AI shooting logic                                  |
+
+Other:
+
+* Powerbar Adapted from Free Asset Store Healthbar
+* Pool Table and Balls Purchased on Asset Store
