@@ -307,7 +307,7 @@ public class Balls : MonoBehaviour
             GameObject rslt = white;
             for (int i = 1; i < 16; i++)
             {
-                if (i == 8)
+                if (i == 8 && balls[i].GetComponent<ball0Script>().inbag)
                     continue;
                 GameObject currBall = balls[i];
                 float tempDist = Vector3.Distance(whitepos, balls[i].transform.position);
@@ -730,6 +730,8 @@ public class Balls : MonoBehaviour
             loseScreen.SetActive(true);
         else
             winScreen.SetActive(true);
+        resetButton.SetActive(true);
+        status = -1;
         //刚刚击球的人胜利
     }
 
@@ -740,6 +742,8 @@ public class Balls : MonoBehaviour
             loseScreen.SetActive(true);
         else
             winScreen.SetActive(true);
+        resetButton.SetActive(true);
+        status = -1;
     }
 
     bool hasValidColor(int s)
@@ -777,7 +781,9 @@ public class Balls : MonoBehaviour
     {
         //#1
         Debug.Log("game logic:\t#1");
-        if (newBallsInBag.Contains(0))
+        if (!isTimeForBlackBall(s) && newBallsInBag.Contains(8))
+            lose(s);
+        else if (newBallsInBag.Contains(0))
         {
             if (isTimeForBlackBall(s) && newBallsInBag.Contains(8))
             {//#2.5
